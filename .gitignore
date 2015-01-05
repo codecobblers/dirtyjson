@@ -1,0 +1,15 @@
+*.egg-info
+*.egg
+*.pyc
+*.so
+.DS_Store
+/MANIFEST
+/.coverage
+/.idea
+/coverage.xml
+/htmlcov
+/build
+/dist
+/docs
+/env
+atlassian-ide-plugin.xml

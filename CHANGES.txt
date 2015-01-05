@@ -1,0 +1,3 @@
+Version 1.0.0
+
+ * Initial release, forked from simplejson 3.3.0
