@@ -9,11 +9,6 @@ from dirtyjson.attributed_dict import AttributedDict
 from .error import JSONDecodeError
 
 
-__all__ = ['JSONDecoder']
-
-FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
-
-
 def _floatconstants():
     _BYTES = fromhex('7FF80000000000007FF0000000000000')
     # The struct module in Python 2.4 would get frexp() out of range here
@@ -31,18 +26,17 @@ _CONSTANTS = {
     'NaN': NaN,
 }
 
-NUMBER_RE = re.compile(
-    r'(-?(?:0|[1-9]\d*))(\.\d+)?([eE][-+]?\d+)?',
-    (re.VERBOSE | re.MULTILINE | re.DOTALL))
+FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
+NUMBER_RE = re.compile(r'(-?(?:0|[1-9]\d*))(\.\d+)?([eE][-+]?\d+)?', FLAGS)
 STRINGCHUNK = re.compile(r'(.*?)(["\\\x00-\x1f])', FLAGS)
+WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
+WHITESPACE_STR = ' \t\n\r'
+
 BACKSLASH = {
     '"': u('"'), '\\': u('\u005c'), '/': u('/'),
     'b': u('\b'), 'f': u('\f'), 'n': u('\n'), 'r': u('\r'), 't': u('\t'),
 }
-
 DEFAULT_ENCODING = "utf-8"
-WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
-WHITESPACE_STR = ' \t\n\r'
 
 
 class JSONDecoder(object):
@@ -53,7 +47,7 @@ class JSONDecoder(object):
     +---------------+-------------------+
     | JSON          | Python            |
     +===============+===================+
-    | object        | dict              |
+    | object        | AttributedDict    |
     +---------------+-------------------+
     | array         | list              |
     +---------------+-------------------+
@@ -77,37 +71,13 @@ class JSONDecoder(object):
 
     def __init__(self, encoding=None, parse_float=None, parse_int=None,
                  parse_constant=None):
-        """
-        *encoding* determines the encoding used to interpret any
-        :class:`str` objects decoded by this instance (``'utf-8'`` by
-        default).  It has no effect when decoding :class:`unicode` objects.
-
-        Note that currently only encodings that are a superset of ASCII work,
-        strings of other encodings should be passed in as :class:`unicode`.
-
-        *parse_float*, if specified, will be called with the string of every
-        JSON float to be decoded.  By default, this is equivalent to
-        ``float(num_str)``. This can be used to use another datatype or parser
-        for JSON floats (e.g. :class:`decimal.Decimal`).
-
-        *parse_int*, if specified, will be called with the string of every
-        JSON int to be decoded.  By default, this is equivalent to
-        ``int(num_str)``.  This can be used to use another datatype or parser
-        for JSON integers (e.g. :class:`float`).
-
-        *parse_constant*, if specified, will be called with one of the
-        following strings: ``'-Infinity'``, ``'Infinity'``, ``'NaN'``.  This
-        can be used to raise an exception if invalid JSON numbers are
-        encountered.
-
-        """
         self.encoding = encoding or DEFAULT_ENCODING
         self.parse_float = parse_float or float
         self.parse_int = parse_int or int
         self.parse_constant = parse_constant or _CONSTANTS.__getitem__
         self.memo = {}
 
-    def _scan_once(self, string, idx):
+    def scan(self, string, idx):
         error_message = 'Expecting value'
         try:
             nextchar = string[idx]
@@ -115,7 +85,7 @@ class JSONDecoder(object):
             raise JSONDecodeError(error_message, string, idx)
 
         if nextchar == '"':
-            return self.scanstring(string, idx + 1)
+            return self.parse_string(string, idx + 1)
         elif nextchar == '{':
             return self.parse_object(string, idx + 1)
         elif nextchar == '[':
@@ -144,14 +114,13 @@ class JSONDecoder(object):
         else:
             raise JSONDecodeError(error_message, string, idx)
 
-    def scanstring(self, string, end,
-                   _b=BACKSLASH, _m=STRINGCHUNK.match, _join=u('').join,
-                   _py2=PY2, _maxunicode=sys.maxunicode):
+    def parse_string(self, string, end,
+                     _b=BACKSLASH, _m=STRINGCHUNK.match, _join=u('').join,
+                     _py2=PY2, _maxunicode=sys.maxunicode):
         """Scan the string for a JSON string. End is the index of the
         character in string after the quote that started the JSON string.
         Unescapes all valid JSON string escape sequences and raises ValueError
-        on attempt to decode an invalid string. If strict is False then literal
-        control characters are allowed in the string.
+        on attempt to decode an invalid string.
 
         Returns a tuple of the decoded string and the index of the character in
         string after the end quote."""
@@ -244,7 +213,7 @@ class JSONDecoder(object):
                     string, end)
         end += 1
         while True:
-            key, end = self.scanstring(string, end)
+            key, end = self.parse_string(string, end)
             key = memo_get(key, key)
 
             # To skip some function call overhead we optimize the fast paths where
@@ -264,7 +233,7 @@ class JSONDecoder(object):
             except IndexError:
                 pass
 
-            value, end = self._scan_once(string, end)
+            value, end = self.scan(string, end)
             pairs.append((key, value))
 
             try:
@@ -313,7 +282,7 @@ class JSONDecoder(object):
             raise JSONDecodeError("Expecting value or ']'", string, end)
         _append = values.append
         while True:
-            value, end = self._scan_once(string, end)
+            value, end = self.scan(string, end)
             _append(value)
             nextchar = string[end:end + 1]
             if nextchar in _ws:
@@ -335,12 +304,6 @@ class JSONDecoder(object):
 
         return values, end
 
-    def scan_once(self, string, idx):
-        try:
-            return self._scan_once(string, idx)
-        finally:
-            self.memo.clear()
-
     def decode(self, s, _w=WHITESPACE.match):
         """Return the Python representation of ``s`` (a ``str`` or ``unicode``
         instance containing a JSON document)
@@ -348,7 +311,7 @@ class JSONDecoder(object):
         """
         if not PY2 and isinstance(s, binary_type):
             s = s.decode(self.encoding)
-        obj, end = self.raw_decode(s)
+        obj, end = self.scan(s, idx=_w(s).end())
         end = _w(s, end).end()
         if end != len(s):
             raise JSONDecodeError("Extra data", s, end, len(s))
@@ -367,4 +330,4 @@ class JSONDecoder(object):
         """
         if not PY2 and not isinstance(s, text_type):
             raise TypeError("Input string must be text, not bytes")
-        return self.scan_once(s, idx=_w(s, idx).end())
+        return self.scan(s, idx=_w(s, idx).end())

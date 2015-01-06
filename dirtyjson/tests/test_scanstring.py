@@ -17,7 +17,7 @@ class TestScanString(TestCase):
     #
     def test_scanstring(self):
         decoder = dirtyjson.decoder.JSONDecoder()
-        scanstring = decoder.scanstring
+        scanstring = decoder.parse_string
         if sys.maxunicode == 65535:
             self.assertEqual(
                 scanstring(u'"z\U0001d120x"', 1),
@@ -124,7 +124,7 @@ class TestScanString(TestCase):
 
     def test_overflow(self):
         decoder = dirtyjson.decoder.JSONDecoder()
-        scanstring = decoder.scanstring
+        scanstring = decoder.parse_string
         # Python 2.5 does not have maxsize, Python 3 does not have maxint
         maxsize = getattr(sys, 'maxsize', getattr(sys, 'maxint', None))
         assert maxsize is not None
@@ -133,7 +133,7 @@ class TestScanString(TestCase):
 
     def test_surrogates(self):
         decoder = dirtyjson.decoder.JSONDecoder()
-        scanstring = decoder.scanstring
+        scanstring = decoder.parse_string
 
         # noinspection PyPep8Naming
         def assertScan(given, expect, test_utf8=True):

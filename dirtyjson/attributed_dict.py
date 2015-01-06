@@ -23,15 +23,15 @@ except NameError:
 
 
 class AttributedDict(dict, DictMixin):
-    def __init__(self, *args, **kwds):
-        super(AttributedDict, self).__init__(**kwds)
+    def __init__(self, *args):
+        super(AttributedDict, self).__init__()
         if len(args) > 1:
             raise TypeError('expected at most 1 arguments, got %d' % len(args))
         try:
             self.__end
         except AttributeError:
             self.clear()
-        self.update(*args, **kwds)
+        self.update(*args)
 
     # noinspection PyAttributeOutsideInit
     def clear(self):

@@ -22,33 +22,12 @@ Decoding JSON::
     >>> dirtyjson.load(io)[0] == 'streaming API'
     True
 
-Specializing JSON object decoding::
-
-    >>> import dirtyjson
-    >>> def as_complex(dct):
-    ...     if '__complex__' in dct:
-    ...         return complex(dct['real'], dct['imag'])
-    ...     return dct
-    ...
-    >>> dirtyjson.loads('{"__complex__": true, "real": 1, "imag": 2}',
-    ...     object_hook=as_complex)
-    (1+2j)
-    >>> from decimal import Decimal
-    >>> dirtyjson.loads('1.1', parse_float=Decimal) == Decimal('1.1')
-    True
-
 """
 from __future__ import absolute_import
 __version__ = '1.0.0'
-__all__ = [
-    'dump', 'dumps', 'load', 'loads',
-    'JSONDecoder', 'JSONDecodeError', 'JSONEncoder',
-    'AttributedDict',
-]
+__all__ = ['load', 'loads', 'JSONDecodeError', 'AttributedDict']
 
 __author__ = 'Scott Maxwell <scott@codecobblers.com>'
-
-from decimal import Decimal
 
 from .error import JSONDecodeError
 from .decoder import JSONDecoder
@@ -56,7 +35,7 @@ from .attributed_dict import AttributedDict
 
 
 def load(fp, encoding=None, parse_float=None, parse_int=None,
-         parse_constant=None, use_decimal=False):
+         parse_constant=None):
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
     a JSON document) to a Python object.
 
@@ -81,18 +60,12 @@ def load(fp, encoding=None, parse_float=None, parse_int=None,
     following strings: ``'-Infinity'``, ``'Infinity'``, ``'NaN'``.  This
     can be used to raise an exception if invalid JSON numbers are
     encountered.
-
-    If *use_decimal* is true (default: ``False``) then it implies
-    parse_float=decimal.Decimal for parity with ``dump``.
     """
-    return loads(fp.read(),
-                 encoding=encoding, parse_float=parse_float,
-                 parse_int=parse_int, parse_constant=parse_constant,
-                 use_decimal=use_decimal)
+    return loads(fp.read(), encoding, parse_float, parse_int, parse_constant)
 
 
 def loads(s, encoding=None, parse_float=None, parse_int=None,
-          parse_constant=None, use_decimal=False):
+          parse_constant=None):
     """Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON
     document) to a Python object.
 
@@ -117,12 +90,6 @@ def loads(s, encoding=None, parse_float=None, parse_int=None,
     following strings: ``'-Infinity'``, ``'Infinity'``, ``'NaN'``.  This
     can be used to raise an exception if invalid JSON numbers are
     encountered.
-
-    If *use_decimal* is true (default: ``False``) then it implies
-    parse_float=decimal.Decimal for parity with ``dump``.
     """
-    if use_decimal:
-        if parse_float is not None:
-            raise TypeError("use_decimal=True implies parse_float=Decimal")
-        parse_float = Decimal
-    return JSONDecoder(encoding=encoding, parse_float=parse_float, parse_int=parse_int, parse_constant=parse_constant).decode(s)
+    return JSONDecoder(encoding, parse_float, parse_int,
+                       parse_constant).decode(s)
