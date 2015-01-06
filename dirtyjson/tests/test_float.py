@@ -3,7 +3,7 @@ import json
 from unittest import TestCase
 import dirtyjson
 from dirtyjson.compat import long_type, text_type
-from dirtyjson.decoder import NaN, PosInf, NegInf
+from dirtyjson.loader import NaN, PosInf, NegInf
 
 
 class TestFloat(TestCase):

@@ -56,15 +56,15 @@ class TestDecode(TestCase):
         self.assertEqual(dirtyjson.loads(u'[""]'), [u""])
 
     def test_raw_decode(self):
-        cls = dirtyjson.JSONDecoder
+        cls = dirtyjson.DirtyJSONLoader
         self.assertEqual(
             ({'a': {}}, 9),
-            cls().raw_decode("{\"a\": {}}"))
+            cls("{\"a\": {}}").raw_decode())
         # http://code.google.com/p/dirtyjson/issues/detail?id=85
         self.assertEqual(
             ({'a': {}}, 9),
-            cls().raw_decode("{\"a\": {}}"))
+            cls("{\"a\": {}}").raw_decode())
         # https://github.com/dirtyjson/dirtyjson/pull/38
         self.assertEqual(
             ({'a': {}}, 11),
-            cls().raw_decode(" \n{\"a\": {}}"))
+            cls(" \n{\"a\": {}}").raw_decode())

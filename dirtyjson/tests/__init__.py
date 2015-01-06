@@ -5,10 +5,10 @@ import doctest
 
 def additional_tests(suite=None):
     import dirtyjson
-    import dirtyjson.decoder
+    import dirtyjson.loader
     if suite is None:
         suite = unittest.TestSuite()
-    for mod in (dirtyjson, dirtyjson.decoder):
+    for mod in (dirtyjson, dirtyjson.loader):
         suite.addTest(doctest.DocTestSuite(mod))
     suite.addTest(doctest.DocFileSuite('../../index.rst'))
     return suite

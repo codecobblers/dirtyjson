@@ -30,7 +30,7 @@ __all__ = ['load', 'loads', 'JSONDecodeError', 'AttributedDict']
 __author__ = 'Scott Maxwell <scott@codecobblers.com>'
 
 from .error import JSONDecodeError
-from .decoder import JSONDecoder
+from .loader import DirtyJSONLoader
 from .attributed_dict import AttributedDict
 
 
@@ -61,7 +61,8 @@ def load(fp, encoding=None, parse_float=None, parse_int=None,
     can be used to raise an exception if invalid JSON numbers are
     encountered.
     """
-    return loads(fp.read(), encoding, parse_float, parse_int, parse_constant)
+    return DirtyJSONLoader(fp.read(), encoding, parse_float, parse_int,
+                           parse_constant).decode()
 
 
 def loads(s, encoding=None, parse_float=None, parse_int=None,
@@ -91,5 +92,5 @@ def loads(s, encoding=None, parse_float=None, parse_int=None,
     can be used to raise an exception if invalid JSON numbers are
     encountered.
     """
-    return JSONDecoder(encoding, parse_float, parse_int,
-                       parse_constant).decode(s)
+    return DirtyJSONLoader(s, encoding, parse_float, parse_int,
+                           parse_constant).decode()
