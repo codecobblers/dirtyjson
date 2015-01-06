@@ -11,27 +11,12 @@ class TestUnicode(TestCase):
         self.assertEqual(dirtyjson.loads('"' + uc + '"'), uc)
         self.assertEqual(dirtyjson.loads('"z\\ud834\\udd20x"'), uc)
 
-    def test_unicode_decode(self):
-        for i in range(0, 0xd7ff):
-            uc = unichr(i)
-            s = '"\\u%04x"' % (i,)
-            self.assertEqual(dirtyjson.loads(s), uc)
-
-    def test_object_pairs_hook_with_unicode(self):
-        s = u'{"xkd":1, "kcw":2, "art":3, "hxm":4, "qrt":5, "pad":6, "hoy":7}'
-        p = [(u"xkd", 1), (u"kcw", 2), (u"art", 3), (u"hxm", 4),
-             (u"qrt", 5), (u"pad", 6), (u"hoy", 7)]
-        self.assertEqual(dirtyjson.loads(s), eval(s))
-        self.assertEqual(dirtyjson.loads(s, object_pairs_hook=lambda x: x), p)
-        od = dirtyjson.loads(s, object_pairs_hook=dirtyjson.OrderedDict)
-        self.assertEqual(od, dirtyjson.OrderedDict(p))
-        self.assertEqual(type(od), dirtyjson.OrderedDict)
-        # the object_pairs_hook takes priority over the object_hook
-        self.assertEqual(dirtyjson.loads(s,
-                                         object_pairs_hook=dirtyjson.OrderedDict,
-                                         object_hook=lambda x: None),
-                         dirtyjson.OrderedDict(p))
-
+    # def test_unicode_decode(self):
+    #     for i in range(0, 0xd7ff):
+    #         uc = unichr(i)
+    #         s = '"\\u%04x"' % (i,)
+    #         self.assertEqual(dirtyjson.loads(s), uc)
+    #
     def test_default_encoding(self):
         self.assertEqual(dirtyjson.loads(u'{"a": "\xe9"}'.encode('utf-8')),
                          {'a': u'\xe9'})

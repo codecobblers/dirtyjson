@@ -39,38 +39,24 @@ Specializing JSON object decoding::
 
 """
 from __future__ import absolute_import
-__version__ = '3.3.0'
+__version__ = '1.0.0'
 __all__ = [
     'dump', 'dumps', 'load', 'loads',
     'JSONDecoder', 'JSONDecodeError', 'JSONEncoder',
-    'OrderedDict',
+    'AttributedDict',
 ]
 
-__author__ = 'Bob Ippolito <bob@redivi.com>'
+__author__ = 'Scott Maxwell <scott@codecobblers.com>'
 
 from decimal import Decimal
 
-from .scanner import JSONDecodeError
+from .error import JSONDecodeError
 from .decoder import JSONDecoder
+from .attributed_dict import AttributedDict
 
 
-def _import_ordereddict():
-    import collections
-    try:
-        return collections.OrderedDict
-    except AttributeError:
-        from . import ordered_dict
-        return ordered_dict.OrderedDict
-OrderedDict = _import_ordereddict()
-
-
-_default_decoder = JSONDecoder(encoding=None, object_hook=None,
-                               object_pairs_hook=None)
-
-
-def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
-         parse_int=None, parse_constant=None, object_pairs_hook=None,
-         use_decimal=False, **kw):
+def load(fp, encoding=None, parse_float=None, parse_int=None,
+         parse_constant=None, use_decimal=False):
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
     a JSON document) to a Python object.
 
@@ -81,20 +67,6 @@ def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
     Note that currently only encodings that are a superset of ASCII work,
     strings of other encodings should be passed in as :class:`unicode`.
 
-    *object_hook*, if specified, will be called with the result of every
-    JSON object decoded and its return value will be used in place of the
-    given :class:`dict`.  This can be used to provide custom
-    deserializations (e.g. to support JSON-RPC class hinting).
-
-    *object_pairs_hook* is an optional function that will be called with
-    the result of any object literal decode with an ordered list of pairs.
-    The return value of *object_pairs_hook* will be used instead of the
-    :class:`dict`.  This feature can be used to implement custom decoders
-    that rely on the order that the key and value pairs are decoded (for
-    example, :func:`collections.OrderedDict` will remember the order of
-    insertion). If *object_hook* is also defined, the *object_pairs_hook*
-    takes priority.
-
     *parse_float*, if specified, will be called with the string of every
     JSON float to be decoded.  By default, this is equivalent to
     ``float(num_str)``. This can be used to use another datatype or parser
@@ -112,23 +84,15 @@ def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
 
     If *use_decimal* is true (default: ``False``) then it implies
     parse_float=decimal.Decimal for parity with ``dump``.
-
-    To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``
-    kwarg. NOTE: You should use *object_hook* or *object_pairs_hook* instead
-    of subclassing whenever possible.
-
     """
     return loads(fp.read(),
-                 encoding=encoding, cls=cls, object_hook=object_hook,
-                 parse_float=parse_float, parse_int=parse_int,
-                 parse_constant=parse_constant,
-                 object_pairs_hook=object_pairs_hook,
-                 use_decimal=use_decimal, **kw)
+                 encoding=encoding, parse_float=parse_float,
+                 parse_int=parse_int, parse_constant=parse_constant,
+                 use_decimal=use_decimal)
 
 
-def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,
-          parse_int=None, parse_constant=None, object_pairs_hook=None,
-          use_decimal=False, **kw):
+def loads(s, encoding=None, parse_float=None, parse_int=None,
+          parse_constant=None, use_decimal=False):
     """Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON
     document) to a Python object.
 
@@ -139,20 +103,6 @@ def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,
     Note that currently only encodings that are a superset of ASCII work,
     strings of other encodings should be passed in as :class:`unicode`.
 
-    *object_hook*, if specified, will be called with the result of every
-    JSON object decoded and its return value will be used in place of the
-    given :class:`dict`.  This can be used to provide custom
-    deserializations (e.g. to support JSON-RPC class hinting).
-
-    *object_pairs_hook* is an optional function that will be called with
-    the result of any object literal decode with an ordered list of pairs.
-    The return value of *object_pairs_hook* will be used instead of the
-    :class:`dict`.  This feature can be used to implement custom decoders
-    that rely on the order that the key and value pairs are decoded (for
-    example, :func:`collections.OrderedDict` will remember the order of
-    insertion). If *object_hook* is also defined, the *object_pairs_hook*
-    takes priority.
-
     *parse_float*, if specified, will be called with the string of every
     JSON float to be decoded.  By default, this is equivalent to
     ``float(num_str)``. This can be used to use another datatype or parser
@@ -170,31 +120,9 @@ def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,
 
     If *use_decimal* is true (default: ``False``) then it implies
     parse_float=decimal.Decimal for parity with ``dump``.
-
-    To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``
-    kwarg. NOTE: You should use *object_hook* or *object_pairs_hook* instead
-    of subclassing whenever possible.
-
     """
-    if (cls is None and encoding is None and object_hook is None and
-            parse_int is None and parse_float is None and
-            parse_constant is None and object_pairs_hook is None
-            and not use_decimal and not kw):
-        return _default_decoder.decode(s)
-    if cls is None:
-        cls = JSONDecoder
-    if object_hook is not None:
-        kw['object_hook'] = object_hook
-    if object_pairs_hook is not None:
-        kw['object_pairs_hook'] = object_pairs_hook
-    if parse_float is not None:
-        kw['parse_float'] = parse_float
-    if parse_int is not None:
-        kw['parse_int'] = parse_int
-    if parse_constant is not None:
-        kw['parse_constant'] = parse_constant
     if use_decimal:
         if parse_float is not None:
             raise TypeError("use_decimal=True implies parse_float=Decimal")
-        kw['parse_float'] = Decimal
-    return cls(encoding=encoding, **kw).decode(s)
+        parse_float = Decimal
+    return JSONDecoder(encoding=encoding, parse_float=parse_float, parse_int=parse_int, parse_constant=parse_constant).decode(s)

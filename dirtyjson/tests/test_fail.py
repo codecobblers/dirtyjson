@@ -53,12 +53,8 @@ JSONDOCS = [
     '["Bad value", truth]',
     # http://json.org/JSON_checker/test/fail24.json
     "['single quote']",
-    # http://json.org/JSON_checker/test/fail25.json
-    '["\ttab\tcharacter\tin\tstring\t"]',
     # http://json.org/JSON_checker/test/fail26.json
     '["tab\\   character\\   in\\  string\\  "]',
-    # http://json.org/JSON_checker/test/fail27.json
-    '["line\nbreak"]',
     # http://json.org/JSON_checker/test/fail28.json
     '["line\\\nbreak"]',
     # http://json.org/JSON_checker/test/fail29.json
@@ -71,8 +67,6 @@ JSONDOCS = [
     '{"Comma instead if closing brace": true,',
     # http://json.org/JSON_checker/test/fail33.json
     '["mismatch"}',
-    # http://code.google.com/p/dirtyjson/issues/detail?id=3
-    u'["A\u001FZ control characters in string"]',
     # misc based on coverage
     '{',
     '{]',

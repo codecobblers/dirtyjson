@@ -3,8 +3,6 @@ import decimal
 from unittest import TestCase
 
 import dirtyjson
-from dirtyjson.compat import StringIO
-from dirtyjson import OrderedDict
 
 
 class TestDecode(TestCase):
@@ -37,23 +35,6 @@ class TestDecode(TestCase):
         s = '""'
         self.assertEqual(dirtyjson.loads(s), eval(s))
 
-    def test_object_pairs_hook(self):
-        s = '{"xkd":1, "kcw":2, "art":3, "hxm":4, "qrt":5, "pad":6, "hoy":7}'
-        p = [("xkd", 1), ("kcw", 2), ("art", 3), ("hxm", 4),
-             ("qrt", 5), ("pad", 6), ("hoy", 7)]
-        self.assertEqual(dirtyjson.loads(s), eval(s))
-        self.assertEqual(dirtyjson.loads(s, object_pairs_hook=lambda x: x), p)
-        self.assertEqual(dirtyjson.load(StringIO(s),
-                                        object_pairs_hook=lambda x: x), p)
-        od = dirtyjson.loads(s, object_pairs_hook=OrderedDict)
-        self.assertEqual(od, OrderedDict(p))
-        self.assertEqual(type(od), OrderedDict)
-        # the object_pairs_hook takes priority over the object_hook
-        self.assertEqual(dirtyjson.loads(s,
-                                         object_pairs_hook=OrderedDict,
-                                         object_hook=lambda x: None),
-                         OrderedDict(p))
-
     def check_keys_reuse(self, source, loads):
         rval = loads(source)
         (a, b), (c, d) = sorted(rval[0]), sorted(rval[1])
@@ -82,7 +63,7 @@ class TestDecode(TestCase):
         # http://code.google.com/p/dirtyjson/issues/detail?id=85
         self.assertEqual(
             ({'a': {}}, 9),
-            cls(object_pairs_hook=dict).raw_decode("{\"a\": {}}"))
+            cls().raw_decode("{\"a\": {}}"))
         # https://github.com/dirtyjson/dirtyjson/pull/38
         self.assertEqual(
             ({'a': {}}, 11),

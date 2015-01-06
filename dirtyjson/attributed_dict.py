@@ -1,24 +1,30 @@
-"""Drop-in replacement for collections.OrderedDict by Raymond Hettinger
+"""Drop-in replacement for collections.AttributedDict by Raymond Hettinger
 
 http://code.activestate.com/recipes/576693/
 
 """
-from UserDict import DictMixin
+try:
+    from collections import MutableMapping as DictMixin
+except ImportError:
+    from UserDict import DictMixin
 
 # Modified from original to support Python 2.4, see
 # http://code.google.com/p/dirtyjson/issues/detail?id=53
 try:
+    # noinspection PyStatementEffect
     all
 except NameError:
+    # noinspection PyShadowingBuiltins
     def all(seq):
         for elem in seq:
             if not elem:
                 return False
         return True
 
-class OrderedDict(dict, DictMixin):
 
+class AttributedDict(dict, DictMixin):
     def __init__(self, *args, **kwds):
+        super(AttributedDict, self).__init__(**kwds)
         if len(args) > 1:
             raise TypeError('expected at most 1 arguments, got %d' % len(args))
         try:
@@ -27,6 +33,7 @@ class OrderedDict(dict, DictMixin):
             self.clear()
         self.update(*args, **kwds)
 
+    # noinspection PyAttributeOutsideInit
     def clear(self):
         self.__end = end = []
         end += [None, end, end]         # sentinel node for doubly linked list
@@ -42,9 +49,9 @@ class OrderedDict(dict, DictMixin):
 
     def __delitem__(self, key):
         dict.__delitem__(self, key)
-        key, prev, next = self.__map.pop(key)
-        prev[2] = next
-        next[1] = prev
+        key, prev, next_entry = self.__map.pop(key)
+        prev[2] = next_entry
+        next_entry[1] = prev
 
     def __iter__(self):
         end = self.__end
@@ -79,7 +86,7 @@ class OrderedDict(dict, DictMixin):
         inst_dict = vars(self).copy()
         self.__map, self.__end = tmp
         if inst_dict:
-            return (self.__class__, (items,), inst_dict)
+            return self.__class__, (items,), inst_dict
         return self.__class__, (items,)
 
     def keys(self):
@@ -90,18 +97,16 @@ class OrderedDict(dict, DictMixin):
     pop = DictMixin.pop
     values = DictMixin.values
     items = DictMixin.items
-    iterkeys = DictMixin.iterkeys
-    itervalues = DictMixin.itervalues
-    iteritems = DictMixin.iteritems
 
     def __repr__(self):
         if not self:
             return '%s()' % (self.__class__.__name__,)
-        return '%s(%r)' % (self.__class__.__name__, self.items())
+        return '%s(%s)' % (self.__class__.__name__, list(self.items()))
 
     def copy(self):
         return self.__class__(self)
 
+    # noinspection PyMethodOverriding
     @classmethod
     def fromkeys(cls, iterable, value=None):
         d = cls()
@@ -110,9 +115,9 @@ class OrderedDict(dict, DictMixin):
         return d
 
     def __eq__(self, other):
-        if isinstance(other, OrderedDict):
-            return len(self)==len(other) and \
-                   all(p==q for p, q in  zip(self.items(), other.items()))
+        if isinstance(other, AttributedDict):
+            return len(self) == len(other) and all(
+                p == q for p, q in zip(self.items(), other.items()))
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
