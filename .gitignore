@@ -11,5 +11,5 @@
 /build
 /dist
 /docs
-/env
+/env*
 atlassian-ide-plugin.xml
