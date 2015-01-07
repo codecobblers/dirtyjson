@@ -24,7 +24,6 @@ Decoding JSON::
 
 """
 from __future__ import absolute_import
-__version__ = '1.0.0'
 __all__ = ['load', 'loads', 'Error']
 
 __author__ = 'Scott Maxwell <scott@codecobblers.com>'

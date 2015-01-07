@@ -33,7 +33,7 @@ CONSTANT_RE = re.compile('(%s)' % '|'.join(_CONSTANTS))
 NUMBER_RE = re.compile(r'(-?(?:(?:0x)?\d+))(\.\d+)?([eE][-+]?\d+)?')
 STRINGCHUNK_DOUBLEQUOTE = re.compile(r'(.*?)(["\\\x00-\x1f])')
 STRINGCHUNK_SINGLEQUOTE = re.compile(r"(.*?)(['\\\x00-\x1f])")
-UNQUOTED_KEYNAME = re.compile(r"([\w_]+[\w\d_]*)")
+UNQUOTED_KEYNAME = re.compile(r"([\w_$]+[\w\d_$]*)")
 WHITESPACE_STR = ' \t\n\r'
 WHITESPACE = re.compile('[%s]*' % WHITESPACE_STR, re.VERBOSE | re.MULTILINE | re.DOTALL)
 
