@@ -85,6 +85,7 @@ class DirtyJSONLoader(object):
             self.content = content.decode(self.encoding)
         else:
             self.content = content
+        self.end = len(self.content)
         self.lineno = 1
         self.current_line_pos = 0
         self.pos = 0
@@ -110,15 +111,30 @@ class DirtyJSONLoader(object):
             return ''
 
     def _skip_whitespace(self):
-        m = WHITESPACE.match(self.content, self.pos)
-        end = m.end()
+        while True:
+            self._skip_forward_to(WHITESPACE.match(self.content, self.pos).end())
+            if self.pos > self.end - 2:
+                break
+            two_chars = self.content[self.pos:self.pos + 2]
+            if two_chars == '//' or two_chars == '/*':
+                terminator = '\n' if two_chars == '//' else '*/'
+                lf = self.content.index(terminator, self.pos)
+                if lf >= 0:
+                    self._skip_forward_to(lf + len(terminator))
+                else:
+                    self._skip_forward_to(self.end)
+                    break
+            else:
+                break
+
+    def _skip_forward_to(self, end):
         if end != self.pos:
             linefeeds = self.content.count('\n', self.pos, end)
             if linefeeds:
                 self.lineno += linefeeds
                 rpos = self.content.rfind('\n', self.pos, end)
                 self.current_line_pos = rpos + 1
-            self.pos = m.end()
+            self.pos = end
 
     def _current_position(self, offset=0):
         return self.lineno, self.pos - self.current_line_pos + 1 + offset
@@ -306,10 +322,21 @@ class DirtyJSONLoader(object):
 
         return values
 
-    def decode(self):
+    def decode(self, search_for_first_object=False, start_index=0):
         """Return the Python representation of ``s`` (a ``str`` or ``unicode``
         instance containing a JSON document)
         """
+        if start_index:
+            self._skip_forward_to(start_index)
+
+        if search_for_first_object:
+            i = self.content.find('[', self.pos)
+            o = self.content.find('{', self.pos)
+            if i > o >= self.pos:
+                i = o
+            if i >= self.pos:
+                self._skip_forward_to(i)
+
         self._skip_whitespace()
         obj = self.scan()
         return obj

@@ -34,7 +34,7 @@ from .loader import DirtyJSONLoader
 
 
 def load(fp, encoding=None, parse_float=None, parse_int=None,
-         parse_constant=None):
+         parse_constant=None, search_for_first_object=False):
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
     a JSON document) to a Python object.
 
@@ -60,12 +60,12 @@ def load(fp, encoding=None, parse_float=None, parse_int=None,
     can be used to raise an exception if invalid JSON numbers are
     encountered.
     """
-    return DirtyJSONLoader(fp.read(), encoding, parse_float, parse_int,
-                           parse_constant).decode()
+    return loads(fp.read(), encoding, parse_float, parse_int, parse_constant,
+                 search_for_first_object)
 
 
 def loads(s, encoding=None, parse_float=None, parse_int=None,
-          parse_constant=None):
+          parse_constant=None, search_for_first_object=False, start_index=0):
     """Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON
     document) to a Python object.
 
@@ -91,5 +91,5 @@ def loads(s, encoding=None, parse_float=None, parse_int=None,
     can be used to raise an exception if invalid JSON numbers are
     encountered.
     """
-    return DirtyJSONLoader(s, encoding, parse_float, parse_int,
-                           parse_constant).decode()
+    d = DirtyJSONLoader(s, encoding, parse_float, parse_int, parse_constant)
+    return d.decode(search_for_first_object, start_index)
