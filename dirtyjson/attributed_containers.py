@@ -5,8 +5,11 @@ http://code.activestate.com/recipes/576693/
 """
 try:
     from collections import MutableMapping as DictMixin
+    py_level = 3
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from UserDict import DictMixin
+    py_level = 2
 
 # Modified from original to support Python 2.4, see
 # http://code.google.com/p/dirtyjson/issues/detail?id=53
@@ -25,6 +28,7 @@ except NameError:
 class AttributedDict(dict, DictMixin):
     def __init__(self, *args):
         super(AttributedDict, self).__init__()
+        self.__attributes = {}
         if len(args) > 1:
             raise TypeError('expected at most 1 arguments, got %d' % len(args))
         try:
@@ -39,6 +43,13 @@ class AttributedDict(dict, DictMixin):
         end += [None, end, end]         # sentinel node for doubly linked list
         self.__map = {}                 # key --> [key, prev, next]
         dict.clear(self)
+
+    def add_with_attributes(self, key, value, attributes):
+        self.__setitem__(key, value)
+        self.__attributes[key] = attributes
+
+    def attributes(self, key):
+        return self.__attributes.get(key)
 
     def __setitem__(self, key, value):
         if key not in self:
@@ -72,10 +83,18 @@ class AttributedDict(dict, DictMixin):
             raise KeyError('dictionary is empty')
         # Modified from original to support Python 2.4, see
         # http://code.google.com/p/dirtyjson/issues/detail?id=53
-        if last:
-            key = reversed(self).next()
+        if py_level == 2:
+            if last:
+                # noinspection PyUnresolvedReferences
+                key = reversed(self).next()
+            else:
+                # noinspection PyUnresolvedReferences
+                key = iter(self).next()
         else:
-            key = iter(self).next()
+            if last:
+                key = next(reversed(self))
+            else:
+                key = next(iter(self))
         value = self.pop(key)
         return key, value
 
@@ -122,3 +141,16 @@ class AttributedDict(dict, DictMixin):
 
     def __ne__(self, other):
         return not self == other
+
+
+class AttributedList(list):
+    def __init__(self):
+        super(AttributedList, self).__init__()
+        self.__attributes = []
+
+    def append(self, value, attributes=None):
+        super(AttributedList, self).append(value)
+        self.__attributes.append(attributes)
+
+    def attributes(self, index):
+        return self.__attributes[index]

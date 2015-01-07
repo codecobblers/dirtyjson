@@ -5,42 +5,22 @@ import dirtyjson
 
 # 2007-10-05
 JSONDOCS = [
-    # http://json.org/JSON_checker/test/fail1.json
-    '"A JSON payload should be an object or array, not a string."',
     # http://json.org/JSON_checker/test/fail2.json
     '["Unclosed array"',
-    # http://json.org/JSON_checker/test/fail3.json
-    '{unquoted_key: "keys must be quoted"}',
-    # http://json.org/JSON_checker/test/fail4.json
-    '["extra comma",]',
     # http://json.org/JSON_checker/test/fail5.json
     '["double extra comma",,]',
     # http://json.org/JSON_checker/test/fail6.json
     '[   , "<-- missing value"]',
-    # http://json.org/JSON_checker/test/fail7.json
-    '["Comma after the close"],',
-    # http://json.org/JSON_checker/test/fail8.json
-    '["Extra close"]]',
-    # http://json.org/JSON_checker/test/fail9.json
-    '{"Extra comma": true,}',
-    # http://json.org/JSON_checker/test/fail10.json
-    '{"Extra value after close": true} "misplaced quoted value"',
     # http://json.org/JSON_checker/test/fail11.json
     '{"Illegal expression": 1 + 2}',
     # http://json.org/JSON_checker/test/fail12.json
     '{"Illegal invocation": alert()}',
-    # http://json.org/JSON_checker/test/fail13.json
-    '{"Numbers cannot have leading zeroes": 013}',
-    # http://json.org/JSON_checker/test/fail14.json
-    '{"Numbers cannot be hex": 0x14}',
     # http://json.org/JSON_checker/test/fail15.json
     '["Illegal backslash escape: \\x15"]',
     # http://json.org/JSON_checker/test/fail16.json
     '[\\naked]',
     # http://json.org/JSON_checker/test/fail17.json
     '["Illegal backslash escape: \\017"]',
-    # http://json.org/JSON_checker/test/fail18.json
-    '[[[[[[[[[[[[[[[[[[[["Too deep"]]]]]]]]]]]]]]]]]]]]',
     # http://json.org/JSON_checker/test/fail19.json
     '{"Missing colon" null}',
     # http://json.org/JSON_checker/test/fail20.json
@@ -51,8 +31,6 @@ JSONDOCS = [
     '["Colon instead of comma": false]',
     # http://json.org/JSON_checker/test/fail23.json
     '["Bad value", truth]',
-    # http://json.org/JSON_checker/test/fail24.json
-    "['single quote']",
     # http://json.org/JSON_checker/test/fail26.json
     '["tab\\   character\\   in\\  string\\  "]',
     # http://json.org/JSON_checker/test/fail28.json
@@ -88,28 +66,16 @@ JSONDOCS = [
     'fal',
     'trug',
     'tru',
-    '1e',
-    '1ex',
-    '1e-',
-    '1e-x',
 ]
-
-SKIPS = {
-    1: "why not have a string payload?",
-    18: "spec doesn't specify any nesting limitations",
-}
 
 
 class TestFail(TestCase):
     def test_failures(self):
         for idx, doc in enumerate(JSONDOCS):
             idx += 1
-            if idx in SKIPS:
-                dirtyjson.loads(doc)
-                continue
             try:
                 dirtyjson.loads(doc)
-            except dirtyjson.JSONDecodeError:
+            except dirtyjson.Error:
                 pass
             else:
                 self.fail("Expected failure for fail%d.json: %r" % (idx, doc))
@@ -119,7 +85,7 @@ class TestFail(TestCase):
         for doc in [u'[,]', '[,]']:
             try:
                 dirtyjson.loads(doc)
-            except dirtyjson.JSONDecodeError:
+            except dirtyjson.Error:
                 e = sys.exc_info()[1]
                 self.assertEqual(e.pos, 1)
                 self.assertEqual(e.lineno, 1)
@@ -140,13 +106,13 @@ class TestFail(TestCase):
             ('["spam', 'Unterminated string starting at', 1),
             ('["spam"', "Expecting ',' delimiter", 7),
             ('["spam",', 'Expecting value', 8),
-            ('{', 'Expecting property name enclosed in double quotes', 1),
+            ('{', 'Expecting property name', 1),
             ('{"', 'Unterminated string starting at', 1),
             ('{"spam', 'Unterminated string starting at', 1),
             ('{"spam"', "Expecting ':' delimiter", 7),
             ('{"spam":', 'Expecting value', 8),
             ('{"spam":42', "Expecting ',' delimiter", 10),
-            ('{"spam":42,', 'Expecting property name enclosed in double quotes',
+            ('{"spam":42,', 'Expecting property name',
              11),
             ('"', 'Unterminated string starting at', 0),
             ('"spam', 'Unterminated string starting at', 0),
@@ -155,7 +121,7 @@ class TestFail(TestCase):
         for data, msg, idx in test_cases:
             try:
                 dirtyjson.loads(data)
-            except dirtyjson.JSONDecodeError:
+            except dirtyjson.Error:
                 e = sys.exc_info()[1]
                 self.assertEqual(
                     e.msg[:len(msg)],

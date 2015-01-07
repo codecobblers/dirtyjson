@@ -25,13 +25,12 @@ Decoding JSON::
 """
 from __future__ import absolute_import
 __version__ = '1.0.0'
-__all__ = ['load', 'loads', 'JSONDecodeError', 'AttributedDict']
+__all__ = ['load', 'loads', 'Error']
 
 __author__ = 'Scott Maxwell <scott@codecobblers.com>'
 
-from .error import JSONDecodeError
+from .error import Error
 from .loader import DirtyJSONLoader
-from .attributed_dict import AttributedDict
 
 
 def load(fp, encoding=None, parse_float=None, parse_int=None,

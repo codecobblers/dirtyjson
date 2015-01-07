@@ -55,16 +55,19 @@ class TestDecode(TestCase):
         self.assertEqual(dirtyjson.loads('[""]'), [""])
         self.assertEqual(dirtyjson.loads(u'[""]'), [u""])
 
-    def test_raw_decode(self):
-        cls = dirtyjson.DirtyJSONLoader
-        self.assertEqual(
-            ({'a': {}}, 9),
-            cls("{\"a\": {}}").raw_decode())
-        # http://code.google.com/p/dirtyjson/issues/detail?id=85
-        self.assertEqual(
-            ({'a': {}}, 9),
-            cls("{\"a\": {}}").raw_decode())
-        # https://github.com/dirtyjson/dirtyjson/pull/38
-        self.assertEqual(
-            ({'a': {}}, 11),
-            cls(" \n{\"a\": {}}").raw_decode())
+    def test_empty_strings_with_single_quotes(self):
+        self.assertEqual(dirtyjson.loads("''"), "")
+        self.assertEqual(dirtyjson.loads(u"''"), u"")
+        self.assertEqual(dirtyjson.loads("['']"), [""])
+        self.assertEqual(dirtyjson.loads(u"['']"), [u""])
+
+    def test_object_keys(self):
+        result = {"key": "value", "k": "v"}
+        rval = dirtyjson.loads("""{"key": "value", "k": "v"}""")
+        self.assertEqual(rval, result)
+        rval = dirtyjson.loads("""{'key': 'value', 'k': 'v'}""")
+        self.assertEqual(rval, result)
+        rval = dirtyjson.loads("""{key: 'value', k: 'v'}""")
+        self.assertEqual(rval, result)
+        rval = dirtyjson.loads("""{key: 'value', k: 'v',}""")
+        self.assertEqual(rval, result)

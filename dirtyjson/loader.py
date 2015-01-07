@@ -5,8 +5,8 @@ import re
 import sys
 import struct
 from .compat import fromhex, u, text_type, binary_type, PY2, unichr
-from dirtyjson.attributed_dict import AttributedDict
-from .error import JSONDecodeError
+from dirtyjson.attributed_containers import AttributedDict, AttributedList
+from .error import Error
 
 
 def _floatconstants():
@@ -21,16 +21,21 @@ def _floatconstants():
 NaN, PosInf, NegInf = _floatconstants()
 
 _CONSTANTS = {
+    'null': None,
+    'true': True,
+    'false': False,
     '-Infinity': NegInf,
     'Infinity': PosInf,
     'NaN': NaN,
 }
 
-FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
-NUMBER_RE = re.compile(r'(-?(?:0|[1-9]\d*))(\.\d+)?([eE][-+]?\d+)?', FLAGS)
-STRINGCHUNK = re.compile(r'(.*?)(["\\\x00-\x1f])', FLAGS)
-WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
+CONSTANT_RE = re.compile('(%s)' % '|'.join(_CONSTANTS))
+NUMBER_RE = re.compile(r'(-?(?:(?:0x)?\d+))(\.\d+)?([eE][-+]?\d+)?')
+STRINGCHUNK_DOUBLEQUOTE = re.compile(r'(.*?)(["\\\x00-\x1f])')
+STRINGCHUNK_SINGLEQUOTE = re.compile(r"(.*?)(['\\\x00-\x1f])")
+UNQUOTED_KEYNAME = re.compile(r"([\w_]+[\w\d_]*)")
 WHITESPACE_STR = ' \t\n\r'
+WHITESPACE = re.compile('[%s]*' % WHITESPACE_STR, re.VERBOSE | re.MULTILINE | re.DOTALL)
 
 BACKSLASH = {
     '"': u('"'), '\\': u('\u005c'), '/': u('/'),
@@ -80,57 +85,81 @@ class DirtyJSONLoader(object):
             self.content = content.decode(self.encoding)
         else:
             self.content = content
-        self.idx = 0
+        self.lineno = 1
+        self.current_line_pos = 0
+        self.pos = 0
+        self.expecting = 'Expecting value'
+
+    def _next_character(self):
+        try:
+            nextchar = self.content[self.pos]
+            self.pos += 1
+            return nextchar
+        except IndexError:
+            raise Error(self.expecting, self.content, self.pos)
+
+    def _next_character_after_whitespace(self):
+        try:
+            nextchar = self.content[self.pos]
+            if nextchar in WHITESPACE_STR:
+                self._skip_whitespace()
+                nextchar = self.content[self.pos]
+            self.pos += 1
+            return nextchar
+        except IndexError:
+            return ''
+
+    def _skip_whitespace(self):
+        m = WHITESPACE.match(self.content, self.pos)
+        end = m.end()
+        if end != self.pos:
+            linefeeds = self.content.count('\n', self.pos, end)
+            if linefeeds:
+                self.lineno += linefeeds
+                rpos = self.content.rfind('\n', self.pos, end)
+                self.current_line_pos = rpos + 1
+            self.pos = m.end()
+
+    def _current_position(self, offset=0):
+        return self.lineno, self.pos - self.current_line_pos + 1 + offset
 
     def scan(self):
-        error_message = 'Expecting value'
-        try:
-            nextchar = self.content[self.idx]
-        except IndexError:
-            raise JSONDecodeError(error_message, self.content, self.idx)
+        self.expecting = 'Expecting value'
+        nextchar = self._next_character()
 
-        if nextchar == '"':
-            self.idx += 1
-            return self.parse_string()
-        elif nextchar == '{':
-            self.idx += 1
+        if nextchar == '"' or nextchar == "'":
+            return self.parse_string(nextchar)
+        if nextchar == '{':
             return self.parse_object()
-        elif nextchar == '[':
-            self.idx += 1
+        if nextchar == '[':
             return self.parse_array()
-        elif nextchar == 'n' and self.content[self.idx:self.idx + 4] == 'null':
-            self.idx += 4
-            return None
-        elif nextchar == 't' and self.content[self.idx:self.idx + 4] == 'true':
-            self.idx += 4
-            return True
-        elif nextchar == 'f' and self.content[self.idx:self.idx + 5] == 'false':
-            self.idx += 5
-            return False
 
-        m = NUMBER_RE.match(self.content, self.idx)
-        if m is not None:
+        self.pos -= 1
+        m = CONSTANT_RE.match(self.content, self.pos)
+        if m:
+            self.pos = m.end()
+            return self.parse_constant(m.groups()[0])
+
+        m = NUMBER_RE.match(self.content, self.pos)
+        if m:
             integer, frac, exp = m.groups()
             if frac or exp:
                 res = self.parse_float(integer + (frac or '') + (exp or ''))
             else:
-                res = self.parse_int(integer)
-            self.idx = m.end()
+                try:
+                    res = self.parse_int(int(integer, 0))
+                except ValueError:
+                    if integer[0] == '0':
+                        integer = '0o' + integer[1:]
+                        res = self.parse_int(int(integer, 0))
+                    else:
+                        raise
+            self.pos = m.end()
             return res
-        elif nextchar == 'N' and self.content[self.idx:self.idx + 3] == 'NaN':
-            self.idx += 3
-            return self.parse_constant('NaN')
-        elif nextchar == 'I' and self.content[self.idx:self.idx + 8] == 'Infinity':
-            self.idx += 8
-            return self.parse_constant('Infinity')
-        elif nextchar == '-' and self.content[self.idx:self.idx + 9] == '-Infinity':
-            self.idx += 9
-            return self.parse_constant('-Infinity')
-        else:
-            raise JSONDecodeError(error_message, self.content, self.idx)
+        raise Error(self.expecting, self.content, self.pos)
 
-    def parse_string(self,
-                     _b=BACKSLASH, _m=STRINGCHUNK.match, _join=u('').join,
+    def parse_string(self, terminating_character,
+                     _b=BACKSLASH, _join=u('').join,
                      _py2=PY2, _maxunicode=sys.maxunicode):
         """Scan the string for a JSON string. End is the index of the
         character in string after the quote that started the JSON string.
@@ -139,15 +168,16 @@ class DirtyJSONLoader(object):
 
         Returns a tuple of the decoded string and the index of the character in
         string after the end quote."""
+        _m = STRINGCHUNK_DOUBLEQUOTE.match if terminating_character == '"' else STRINGCHUNK_SINGLEQUOTE.match
         chunks = []
         _append = chunks.append
-        begin = self.idx - 1
+        begin = self.pos - 1
         while 1:
-            chunk = _m(self.content, self.idx)
+            chunk = _m(self.content, self.pos)
             if chunk is None:
-                raise JSONDecodeError(
+                raise Error(
                     "Unterminated string starting at", self.content, begin)
-            self.idx = chunk.end()
+            self.pos = chunk.end()
             content, terminator = chunk.groups()
             # Content is contains zero or more unescaped string characters
             if content:
@@ -156,15 +186,15 @@ class DirtyJSONLoader(object):
                 _append(content)
             # Terminator is the end of string, a literal control character,
             # or a backslash denoting that an escape sequence follows
-            if terminator == '"':
+            if terminator == terminating_character:
                 break
             elif terminator != '\\':
                 _append(terminator)
                 continue
             try:
-                esc = self.content[self.idx]
+                esc = self.content[self.pos]
             except IndexError:
-                raise JSONDecodeError(
+                raise Error(
                     "Unterminated string starting at", self.content, begin)
             # If not a unicode escape sequence, must be in the lookup table
             if esc != 'u':
@@ -172,152 +202,107 @@ class DirtyJSONLoader(object):
                     char = _b[esc]
                 except KeyError:
                     msg = "Invalid \\X escape sequence %r"
-                    raise JSONDecodeError(msg, self.content, self.idx)
-                self.idx += 1
+                    raise Error(msg, self.content, self.pos)
+                self.pos += 1
             else:
                 # Unicode escape sequence
                 msg = "Invalid \\uXXXX escape sequence"
-                esc = self.content[self.idx + 1:self.idx + 5]
+                esc = self.content[self.pos + 1:self.pos + 5]
                 esc_x = esc[1:2]
                 if len(esc) != 4 or esc_x == 'x' or esc_x == 'X':
-                    raise JSONDecodeError(msg, self.content, self.idx - 1)
+                    raise Error(msg, self.content, self.pos - 1)
                 try:
                     uni = int(esc, 16)
                 except ValueError:
-                    raise JSONDecodeError(msg, self.content, self.idx - 1)
-                self.idx += 5
+                    raise Error(msg, self.content, self.pos - 1)
+                self.pos += 5
                 # Check for surrogate pair on UCS-4 systems
                 # Note that this will join high/low surrogate pairs
                 # but will also pass unpaired surrogates through
-                if _maxunicode > 65535 and uni & 0xfc00 == 0xd800 and self.content[self.idx:self.idx + 2] == '\\u':
-                    esc2 = self.content[self.idx + 2:self.idx + 6]
+                if _maxunicode > 65535 and uni & 0xfc00 == 0xd800 and self.content[self.pos:self.pos + 2] == '\\u':
+                    esc2 = self.content[self.pos + 2:self.pos + 6]
                     esc_x = esc2[1:2]
                     if len(esc2) == 4 and not (esc_x == 'x' or esc_x == 'X'):
                         try:
                             uni2 = int(esc2, 16)
                         except ValueError:
-                            raise JSONDecodeError(msg, self.content, self.idx)
+                            raise Error(msg, self.content, self.pos)
                         if uni2 & 0xfc00 == 0xdc00:
                             uni = 0x10000 + (((uni - 0xd800) << 10) |
                                              (uni2 - 0xdc00))
-                            self.idx += 6
+                            self.pos += 6
                 char = unichr(uni)
             # Append the unescaped character
             _append(char)
         return _join(chunks)
 
-    def parse_object(self,
-                     _w=WHITESPACE.match, _ws=WHITESPACE_STR):
+    def parse_object(self):
         # Backwards compatibility
         memo_get = self.memo.setdefault
-        pairs = []
+        obj = AttributedDict()
         # Use a slice to prevent IndexError from being raised, the following
         # check will raise a more specific ValueError if the string is empty
-        nextchar = self.content[self.idx:self.idx + 1]
-        # Normally we expect nextchar == '"'
-        if nextchar != '"':
-            if nextchar in _ws:
-                self.idx = _w(self.content, self.idx).end()
-                nextchar = self.content[self.idx:self.idx + 1]
-            # Trivial empty object
-            if nextchar == '}':
-                self.idx += 1
-                return AttributedDict(pairs)
-            elif nextchar != '"':
-                raise JSONDecodeError(
-                    "Expecting property name enclosed in double quotes",
-                    self.content, self.idx)
-        self.idx += 1
+        nextchar = self._next_character_after_whitespace()
+        # Trivial empty object
         while True:
-            key = self.parse_string()
+            if nextchar == '}':
+                break
+            key_pos = self._current_position(len(nextchar))
+            if nextchar == '"' or nextchar == "'":
+                key = self.parse_string(nextchar)
+            else:
+                chunk = UNQUOTED_KEYNAME.match(self.content, self.pos - 1)
+                if chunk is None:
+                    raise Error(
+                        "Expecting property name",
+                        self.content, self.pos)
+                self.pos = chunk.end()
+                key = chunk.groups()[0]
             key = memo_get(key, key)
 
             # To skip some function call overhead we optimize the fast paths where
             # the JSON key separator is ": " or just ":".
-            if self.content[self.idx:self.idx + 1] != ':':
-                self.idx = _w(self.content, self.idx).end()
-                if self.content[self.idx:self.idx + 1] != ':':
-                    raise JSONDecodeError("Expecting ':' delimiter", self.content, self.idx)
+            if self._next_character_after_whitespace() != ':':
+                raise Error("Expecting ':' delimiter", self.content, self.pos)
 
-            self.idx += 1
-
-            try:
-                if self.content[self.idx] in _ws:
-                    self.idx += 1
-                    if self.content[self.idx] in _ws:
-                        self.idx = _w(self.content, self.idx + 1).end()
-            except IndexError:
-                pass
-
+            self._skip_whitespace()
+            value_pos = self._current_position()
             value = self.scan()
-            pairs.append((key, value))
+            obj.add_with_attributes(key, value, {'key': key_pos, 'value': value_pos})
 
-            try:
-                nextchar = self.content[self.idx]
-                if nextchar in _ws:
-                    self.idx = _w(self.content, self.idx + 1).end()
-                    nextchar = self.content[self.idx]
-            except IndexError:
-                nextchar = ''
-            self.idx += 1
-
+            nextchar = self._next_character_after_whitespace()
             if nextchar == '}':
                 break
             elif nextchar != ',':
-                raise JSONDecodeError("Expecting ',' delimiter or '}'", self.content, self.idx - 1)
+                raise Error("Expecting ',' delimiter or '}'", self.content, self.pos - len(nextchar))
 
-            try:
-                nextchar = self.content[self.idx]
-                if nextchar in _ws:
-                    self.idx += 1
-                    nextchar = self.content[self.idx]
-                    if nextchar in _ws:
-                        self.idx = _w(self.content, self.idx + 1).end()
-                        nextchar = self.content[self.idx]
-            except IndexError:
-                nextchar = ''
+            nextchar = self._next_character_after_whitespace()
 
-            self.idx += 1
-            if nextchar != '"':
-                raise JSONDecodeError(
-                    "Expecting property name enclosed in double quotes",
-                    self.content, self.idx - 1)
+        return obj
 
-        return AttributedDict(pairs)
-
-    def parse_array(self, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
-        values = []
-        nextchar = self.content[self.idx:self.idx + 1]
-        if nextchar in _ws:
-            self.idx = _w(self.content, self.idx + 1).end()
-            nextchar = self.content[self.idx:self.idx + 1]
+    def parse_array(self):
+        values = AttributedList()
+        nextchar = self._next_character_after_whitespace()
         # Look-ahead for trivial empty array
         if nextchar == ']':
-            self.idx += 1
             return values
         elif nextchar == '':
-            raise JSONDecodeError("Expecting value or ']'", self.content, self.idx)
+            raise Error("Expecting value or ']'", self.content, self.pos)
         _append = values.append
         while True:
+            if nextchar == ']':
+                break
+            self.pos -= len(nextchar)
+            value_pos = self._current_position()
             value = self.scan()
-            _append(value)
-            nextchar = self.content[self.idx:self.idx + 1]
-            if nextchar in _ws:
-                self.idx = _w(self.content, self.idx + 1).end()
-                nextchar = self.content[self.idx:self.idx + 1]
-            self.idx += 1
+            _append(value, value_pos)
+            nextchar = self._next_character_after_whitespace()
             if nextchar == ']':
                 break
             elif nextchar != ',':
-                raise JSONDecodeError("Expecting ',' delimiter or ']'", self.content, self.idx - 1)
+                raise Error("Expecting ',' delimiter or ']'", self.content, self.pos - len(nextchar))
 
-            try:
-                if self.content[self.idx] in _ws:
-                    self.idx += 1
-                    if self.content[self.idx] in _ws:
-                        self.idx = _w(self.content, self.idx + 1).end()
-            except IndexError:
-                pass
+            nextchar = self._next_character_after_whitespace()
 
         return values
 
@@ -325,23 +310,6 @@ class DirtyJSONLoader(object):
         """Return the Python representation of ``s`` (a ``str`` or ``unicode``
         instance containing a JSON document)
         """
-        self.idx = WHITESPACE.match(self.content).end()
+        self._skip_whitespace()
         obj = self.scan()
-        end = WHITESPACE.match(self.content, self.idx).end()
-        if end != len(self.content):
-            raise JSONDecodeError("Extra data", self.content, end, len(self.content))
         return obj
-
-    def raw_decode(self):
-        """Decode a JSON document from ``s`` (a ``str`` or ``unicode``
-        beginning with a JSON document) and return a 2-tuple of the Python
-        representation and the index in ``s`` where the document ended.
-        Optionally, ``idx`` can be used to specify an offset in ``s`` where
-        the JSON document begins.
-
-        This can be used to decode a JSON document from a string that may
-        have extraneous data at the end.
-
-        """
-        self.idx = WHITESPACE.match(self.content).end()
-        return self.scan(), self.idx

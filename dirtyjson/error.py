@@ -1,10 +1,10 @@
 """JSON decode error class
 """
 
-__all__ = ['JSONDecodeError']
+__all__ = ['Error']
 
 
-class JSONDecodeError(ValueError):
+class Error(ValueError):
     """Subclass of ValueError with the following additional properties:
 
     msg: The unformatted error message

@@ -7,7 +7,8 @@ JSON = r'''
 {
     "JSON Test Pattern pass3": {
         "The outermost value": "must be an object or array.",
-        "In this test": "It is an object."
+        "In this test": "It is an object.",
+        array_value: ["one", "two", 3],
     }
 }
 '''
