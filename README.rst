@@ -31,7 +31,7 @@ only the `load(s)` capability. To write JSON, use either the standard
    :mod:`simplejson` project for providing such a nice starting point.
 
 Development of dirtyjson happens on Github:
-http://github.com/codecobblers/dirtyjson
+https://github.com/codecobblers/dirtyjson
 
 Decoding JSON::
 
