@@ -11,12 +11,12 @@ class TestUnicode(TestCase):
         self.assertEqual(dirtyjson.loads('"' + uc + '"'), uc)
         self.assertEqual(dirtyjson.loads('"z\\ud834\\udd20x"'), uc)
 
-    # def test_unicode_decode(self):
-    #     for i in range(0, 0xd7ff):
-    #         uc = unichr(i)
-    #         s = '"\\u%04x"' % (i,)
-    #         self.assertEqual(dirtyjson.loads(s), uc)
-    #
+    def test_unicode_decode(self):
+        for i in range(0, 0xd7ff):
+            uc = unichr(i)
+            s = '"\\u%04x"' % (i,)
+            self.assertEqual(dirtyjson.loads(s), uc)
+
     def test_default_encoding(self):
         self.assertEqual(dirtyjson.loads(u'{"a": "\xe9"}'.encode('utf-8')),
                          {'a': u'\xe9'})
