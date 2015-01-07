@@ -18,17 +18,12 @@ class Error(ValueError):
 
     """
     # Note that this exception is used from _speedups
-    def __init__(self, msg, doc, pos, end=None):
-        ValueError.__init__(self, errmsg(msg, doc, pos, end=end))
+    def __init__(self, msg, doc, pos):
+        ValueError.__init__(self, errmsg(msg, doc, pos))
         self.msg = msg
         self.doc = doc
         self.pos = pos
-        self.end = end
         self.lineno, self.colno = linecol(doc, pos)
-        if end is not None:
-            self.endlineno, self.endcolno = linecol(doc, end)
-        else:
-            self.endlineno, self.endcolno = None, None
 
 
 def linecol(doc, pos):
@@ -40,12 +35,8 @@ def linecol(doc, pos):
     return lineno, colno
 
 
-def errmsg(msg, doc, pos, end=None):
+def errmsg(msg, doc, pos):
     lineno, colno = linecol(doc, pos)
     msg = msg.replace('%r', repr(doc[pos:pos + 1]))
-    if end is None:
-        fmt = '%s: line %d column %d (char %d)'
-        return fmt % (msg, lineno, colno, pos)
-    endlineno, endcolno = linecol(doc, end)
-    fmt = '%s: line %d column %d - line %d column %d (char %d - %d)'
-    return fmt % (msg, lineno, colno, endlineno, endcolno, pos, end)
+    fmt = '%s: line %d column %d (char %d)'
+    return fmt % (msg, lineno, colno, pos)
