@@ -37,11 +37,11 @@ Decoding JSON::
 
     >>> import dirtyjson
     >>> obj = [u'foo', {u'bar': [u'baz', None, 1.0, 2]}]
-    >>> dirtyjson.loads('["foo", /* not fu*/ {bar: ['baz', null, 1.0, 2,]}] and then ignore this junk') == obj
+    >>> dirtyjson.loads("""["foo", /* not fu*/ {bar: ['baz', null, 1.0, 2,]}] and then ignore this junk""") == obj
     True
     >>> dirtyjson.loads('"\\"foo\\bar"') == u'"foo\x08ar'
     True
-    >>> from simplejson.compat import StringIO
+    >>> from dirtyjson.compat import StringIO
     >>> io = StringIO('["streaming API"]')
     >>> dirtyjson.load(io)[0] == 'streaming API'
     True
