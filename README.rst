@@ -33,14 +33,35 @@ only the `load(s)` capability. To write JSON, use either the standard
 Development of dirtyjson happens on Github:
 https://github.com/codecobblers/dirtyjson
 
-Decoding JSON::
+Decoding JSON and getting position information::
 
     >>> import dirtyjson
     >>> obj = [u'foo', {u'bar': [u'baz', None, 1.0, 2]}]
-    >>> dirtyjson.loads("""["foo", /* not fu*/ {bar: ['baz', null, 1.0, 2,]}] and then ignore this junk""") == obj
+    >>> d = dirtyjson.loads("""["foo", /* not fu*/ {bar: ['baz', null, 1.0, 2,]}] and then ignore this junk""")
+    >>> d == obj
     True
+    >>> pos = d.attributes(0)  # line/column position of first element in array
+    >>> pos.line == 1
+    True
+    >>> pos.column == 2
+    True
+    >>> pos = d[1].attributes('bar')  # line/column position of 'bar' key/value pair
+    >>> pos.key.line == 1
+    True
+    >>> pos.key.column == 22
+    True
+    >>> pos.value.line == 1
+    True
+    >>> pos.value.column == 27
+    True
+
+Decoding unicode from JSON::
+
     >>> dirtyjson.loads('"\\"foo\\bar"') == u'"foo\x08ar'
     True
+
+Decoding JSON from streams::
+
     >>> from dirtyjson.compat import StringIO
     >>> io = StringIO('["streaming API"]')
     >>> dirtyjson.load(io)[0] == 'streaming API'
@@ -187,6 +208,19 @@ element. We use those attributes to store line and column numbers. You can use
 that information to refer users back to the exact location in the original
 source file.
 
+.. class:: Position()
+
+   This is a very simple utility class that contains ``line`` and ``column``.
+   It is used for storing the position attributes for :class:`AttributedList`
+   and :class:`KeyValuePosition`
+
+.. class:: KeyValuePosition()
+
+   This is another very simple utility class that contains ``key`` and
+   ``value``. Each of those is a :class:`Position` object specifying the
+   location in the original source string/file of the key and value. It is used
+   for storing the position attributes for :class:`AttributedDict`.
+
 .. class:: AttributedDict()
 
    A subclass of ``dict`` that behaves exactly like a ``dict`` except that it
@@ -197,14 +231,19 @@ source file.
 
       Set the *key* in the underlying ``dict`` to the *value* and also store
       whatever is passed in as *attributes* for later retrieval. In our case,
-      we store an attrbute ``dict`` that looks like::
-
-         {'key': (key_line_no, key_column_no), 'value': (value_line_no, value_column_no)}
+      we store :class:`KeyValuePosition`.
 
    .. method:: attributes(self, key)
 
       Return the attributes associated with the specified *key* or ``None`` if
-      no attributes exist for the key.
+      no attributes exist for the key. In our case, we store
+      :class:`KeyValuePosition`. Retrieve position info like this::
+
+         pos = d.attributes(key)
+         key_line = pos.key.line
+         key_column = pos.key.column
+         value_line = pos.value.line
+         value_column = pos.value.column
 
 .. class:: AttributedList()
 
@@ -214,13 +253,16 @@ source file.
    .. method:: append(self, value, attributes=None):
 
       Appends *value* to the list and *attributes* to the associated location.
-      In our case, we store an attribute tuple that looks like::
-
-         (value_line_no, value_column_no)
+      In our case, we store :class:`Position`.
 
    .. method:: attributes(self, index)
 
-      Returns the attributes for the value at the given *index*.
+      Returns the attributes for the value at the given *index*. In our case,
+      we store :class:`Position`. Retrieve position info like this::
+
+         pos = l.attributes(index)
+         value_line = pos.line
+         value_column = pos.column
 
    .. note::
 

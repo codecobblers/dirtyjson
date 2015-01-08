@@ -44,6 +44,18 @@ BACKSLASH = {
 DEFAULT_ENCODING = "utf-8"
 
 
+class Position(object):
+    def __init__(self, line, column):
+        self.line = line
+        self.column = column
+
+
+class KeyValuePosition(object):
+    def __init__(self, key_position, value_position):
+        self.key = key_position
+        self.value = value_position
+
+
 class DirtyJSONLoader(object):
     """JSON decoder that can handle muck in the file
 
@@ -137,7 +149,7 @@ class DirtyJSONLoader(object):
             self.pos = end
 
     def _current_position(self, offset=0):
-        return self.lineno, self.pos - self.current_line_pos + 1 + offset
+        return Position(self.lineno, self.pos - self.current_line_pos + 1 + offset)
 
     def scan(self):
         self.expecting = 'Expecting value'
@@ -282,9 +294,9 @@ class DirtyJSONLoader(object):
                 raise Error("Expecting ':' delimiter", self.content, self.pos)
 
             self._skip_whitespace()
-            value_pos = self._current_position()
+            key_value_pos = KeyValuePosition(key_pos, self._current_position())
             value = self.scan()
-            obj.add_with_attributes(key, value, {'key': key_pos, 'value': value_pos})
+            obj.add_with_attributes(key, value, key_value_pos)
 
             nextchar = self._next_character_after_whitespace()
             if nextchar == '}':
@@ -304,14 +316,13 @@ class DirtyJSONLoader(object):
             return values
         elif nextchar == '':
             raise Error("Expecting value or ']'", self.content, self.pos)
-        _append = values.append
         while True:
             if nextchar == ']':
                 break
             self.pos -= len(nextchar)
             value_pos = self._current_position()
             value = self.scan()
-            _append(value, value_pos)
+            values.append(value, value_pos)
             nextchar = self._next_character_after_whitespace()
             if nextchar == ']':
                 break
