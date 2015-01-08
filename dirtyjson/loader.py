@@ -263,7 +263,7 @@ class DirtyJSONLoader(object):
         while True:
             if nextchar == '}':
                 break
-            key_pos = self._current_position(len(nextchar))
+            key_pos = self._current_position(-len(nextchar))
             if nextchar == '"' or nextchar == "'":
                 key = self.parse_string(nextchar)
             else:
