@@ -354,7 +354,7 @@ class DirtyJSONLoader(object):
         if search_for_first_object:
             i = self.content.find('[', self.pos)
             o = self.content.find('{', self.pos)
-            if i > o >= self.pos:
+            if i > o >= self.pos or i < 0:
                 i = o
             if i >= self.pos:
                 self._skip_forward_to(i)
