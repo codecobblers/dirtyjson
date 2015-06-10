@@ -11,7 +11,7 @@ except ImportError:
     from distutils.errors import CCompilerError, DistutilsExecError, \
         DistutilsPlatformError
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 DESCRIPTION = "JSON decoder for Python that can extract data from the muck"
 
 with open('README.rst', 'r') as f:
