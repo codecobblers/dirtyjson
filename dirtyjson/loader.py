@@ -99,9 +99,15 @@ class DirtyJSONLoader(object):
         self.parse_constant = parse_constant or _CONSTANTS.__getitem__
         self.memo = {}
         if not PY2 and isinstance(content, binary_type):
-            self.content = content.decode(self.encoding)
+            self.content = content.decode()
         else:
             self.content = content
+        if self.encoding != DEFAULT_ENCODING:
+            fixed = self.content.encode(self.encoding, 'ignore').decode()
+            if self.content != fixed:
+                for index, character in enumerate(self.content):
+                    if character != fixed[index]:
+                        raise Error('Non-{} character {}'.format(self.encoding, ascii(character)), self.content, index)
         self.end = len(self.content)
         self.lineno = 1
         self.current_line_pos = 0
