@@ -49,6 +49,11 @@ class Position(object):
         self.line = line
         self.column = column
 
+    def __lt__(self, other):
+        if self.line > other.line:
+            return False
+        return self.line < other.line or self.column < other.column
+
 
 class KeyValuePosition(object):
     def __init__(self, key_position, value_position):
