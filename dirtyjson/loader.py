@@ -31,6 +31,7 @@ _CONSTANTS = {
 
 CONSTANT_RE = re.compile('(%s)' % '|'.join(_CONSTANTS))
 NUMBER_RE = re.compile(r'(-?(?:(?:0x)?[\da-fA-F]+))(\.\d+)?([eE][-+]?\d+)?')
+EQUATION_RE = re.compile(r'[0-9\.+\-]*[\(\)[0-9+\-\*/eEx\(\)&|]+')
 STRINGCHUNK_DOUBLEQUOTE = re.compile(r'(.*?)(["\\\x00-\x1f])')
 STRINGCHUNK_SINGLEQUOTE = re.compile(r"(.*?)(['\\\x00-\x1f])")
 UNQUOTED_KEYNAME = re.compile(r"([\w_$]+[\w\d_$]*)")
@@ -180,7 +181,7 @@ class DirtyJSONLoader(object):
             return self.parse_constant(m.groups()[0])
 
         m = NUMBER_RE.match(self.content, self.pos)
-        if m:
+        if m and self.content[m.end()] not in '+-/*()':
             integer, frac, exp = m.groups()
             if frac or exp:
                 res = self.parse_float(integer + (frac or '') + (exp or ''))
@@ -193,6 +194,14 @@ class DirtyJSONLoader(object):
                         res = self.parse_int(int(integer, 0))
                     else:
                         raise
+            self.pos = m.end()
+            return res
+        m = EQUATION_RE.match(self.content, self.pos)
+        if m:
+            try:
+                res = eval(m.string[m.pos:m.end()])
+            except SyntaxError as e:
+                raise Error('Cannot evaluate expression', self.content, self.pos)
             self.pos = m.end()
             return res
         raise Error(self.expecting, self.content, self.pos)
