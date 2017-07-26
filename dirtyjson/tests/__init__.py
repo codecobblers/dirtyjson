@@ -1,10 +1,10 @@
 from __future__ import absolute_import
-import unittest
+
 import doctest
+import unittest
 
 
 def additional_tests(suite=None):
-    import dirtyjson
     import dirtyjson.loader
     if suite is None:
         suite = unittest.TestSuite()

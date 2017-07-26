@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from .error import Error
+from .loader import DirtyJSONLoader
+
 r"""JSON (JavaScript Object Notation) <http://json.org> is a subset of
 JavaScript syntax (ECMA-262 3rd edition) used as a lightweight data
 interchange format.
@@ -23,13 +27,9 @@ Decoding JSON::
     True
 
 """
-from __future__ import absolute_import
 __all__ = ['load', 'loads', 'Error']
 
 __author__ = 'Scott Maxwell <scott@codecobblers.com>'
-
-from .error import Error
-from .loader import DirtyJSONLoader
 
 
 def load(fp, encoding=None, parse_float=None, parse_int=None,
@@ -46,12 +46,12 @@ def load(fp, encoding=None, parse_float=None, parse_int=None,
 
     *parse_float*, if specified, will be called with the string of every
     JSON float to be decoded.  By default, this is equivalent to
-    ``float(num_str)``. This can be used to use another datatype or parser
+    ``float(num_str)``. This can be used to use another data type or parser
     for JSON floats (e.g. :class:`decimal.Decimal`).
 
     *parse_int*, if specified, will be called with the string of every
     JSON int to be decoded.  By default, this is equivalent to
-    ``int(num_str)``.  This can be used to use another datatype or parser
+    ``int(num_str)``.  This can be used to use another data type or parser
     for JSON integers (e.g. :class:`float`).
 
     *parse_constant*, if specified, will be called with one of the
@@ -77,12 +77,12 @@ def loads(s, encoding=None, parse_float=None, parse_int=None,
 
     *parse_float*, if specified, will be called with the string of every
     JSON float to be decoded.  By default, this is equivalent to
-    ``float(num_str)``. This can be used to use another datatype or parser
+    ``float(num_str)``. This can be used to use another data type or parser
     for JSON floats (e.g. :class:`decimal.Decimal`).
 
     *parse_int*, if specified, will be called with the string of every
     JSON int to be decoded.  By default, this is equivalent to
-    ``int(num_str)``.  This can be used to use another datatype or parser
+    ``int(num_str)``.  This can be used to use another data type or parser
     for JSON integers (e.g. :class:`float`).
 
     *parse_constant*, if specified, will be called with one of the
