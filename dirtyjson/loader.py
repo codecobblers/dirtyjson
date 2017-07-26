@@ -39,7 +39,7 @@ WHITESPACE_STR = ' \t\n\r'
 WHITESPACE = re.compile('[%s]*' % WHITESPACE_STR, re.VERBOSE | re.MULTILINE | re.DOTALL)
 
 BACKSLASH = {
-    '"': u('"'), '\\': u('\u005c'), '/': u('/'),
+    '"': u('"'), '\'': u('\''), '\\': u('\u005c'), '/': u('/'),
     'b': u('\b'), 'f': u('\f'), 'n': u('\n'), 'r': u('\r'), 't': u('\t'),
 }
 DEFAULT_ENCODING = "utf-8"
