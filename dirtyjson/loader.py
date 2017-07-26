@@ -200,7 +200,7 @@ class DirtyJSONLoader(object):
         if m:
             try:
                 res = eval(m.string[m.pos:m.end()])
-            except SyntaxError as e:
+            except (SyntaxError, NameError):
                 raise Error('Cannot evaluate expression', self.content, self.pos)
             self.pos = m.end()
             return res
