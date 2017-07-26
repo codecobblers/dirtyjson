@@ -7,7 +7,7 @@ try:
     from collections import MutableMapping as DictMixin
     py_level = 3
 except ImportError:
-    # noinspection PyUnresolvedReferences
+    # noinspection PyUnresolvedReferences,PyCompatibility
     from UserDict import DictMixin
     py_level = 2
 
@@ -130,7 +130,7 @@ class AttributedDict(dict, DictMixin):
     def __eq__(self, other):
         if isinstance(other, AttributedDict):
             return len(self) == len(other) and all(
-                p == q for p, q in zip(self.items(), other.items()))
+                p == q for p, q in zip(sorted(self.items()), sorted(other.items())))
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
