@@ -24,6 +24,8 @@ if sys.version_info[0] < 3:
     integer_types = (int, long)
     # noinspection PyUnresolvedReferences,PyUnboundLocalVariable
     unichr = unichr
+    # noinspection PyShadowingBuiltins
+    ascii = repr
 
     def fromhex(s):
         return s.decode('hex')
@@ -45,6 +47,7 @@ else:
     binary_type = bytes
     string_types = (str,)
     integer_types = (int,)
+    ascii = ascii
 
     def unichr(s):
         return u(chr(s))

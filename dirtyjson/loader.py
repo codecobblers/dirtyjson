@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import re
 import sys
 import struct
-from .compat import fromhex, u, text_type, binary_type, PY2, unichr
+from .compat import fromhex, u, text_type, binary_type, PY2, unichr, ascii
 from dirtyjson.attributed_containers import AttributedDict, AttributedList
 from .error import Error
 
