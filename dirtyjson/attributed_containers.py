@@ -4,7 +4,10 @@ http://code.activestate.com/recipes/576693/
 
 """
 try:
-    from collections import MutableMapping as DictMixin
+    try:
+        from collections.abc import MutableMapping as DictMixin
+    except ImportError:
+        from collections import MutableMapping as DictMixin
     py_level = 3
 except ImportError:
     # noinspection PyUnresolvedReferences,PyCompatibility
