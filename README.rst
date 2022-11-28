@@ -1,34 +1,34 @@
-:mod:`dirtyjson` --- JSON decoder
-=================================
+`dirtyjson` --- JSON decoder
+============================
 
-.. module:: dirtyjson
-   :synopsis: Decode JSON data from dirty files.
-.. moduleauthor:: Scott Maxwell <scott@codecobblers.com>
+.. dirtyjson
+   Decode JSON data from dirty files.
+.. Scott Maxwell <scott@codecobblers.com>
 
 JSON (JavaScript Object Notation) <http://json.org> is a subset of JavaScript
 syntax (ECMA-262 3rd edition) used as a lightweight data interchange format.
 
-:mod:`dirtyjson` is a JSON decoder meant for extracting JSON-type data from .js
+`dirtyjson` is a JSON decoder meant for extracting JSON-type data from .js
 files. The returned data structure includes information about line and column
 numbers, so you can output more useful error messages. The input can also
 include single quotes, line comments, inline comments, dangling commas,
 unquoted single-word keys, and hexadecimal and octal numbers.
 
-The goal of :mod:`dirtyjson` is to read JSON objects out of files that are
+The goal of `dirtyjson` is to read JSON objects out of files that are
 littered with elements that do not fit the official JSON standard. By providing
 line and column number contexts, a dirty JSON file can be used as source input
 for a complex data parser or compiler.
 
-:mod:`dirtyjson` exposes an API familiar to users of the standard library
-:mod:`marshal` and :mod:`pickle` modules. However, :mod:`dirtyjson` provides
+`dirtyjson` exposes an API familiar to users of the standard library
+`marshal` and `pickle` modules. However, `dirtyjson` provides
 only the `load(s)` capability. To write JSON, use either the standard
-:mod:`json` library or :mod:`simplejson`.
+`json` library or `simplejson`.
 
 .. note::
 
-   The code for :mod:`dirtyjson` is a fairly drastically rewritten version
-   of the loader in :mod:`simplejson` so thanks go to Bob Ippolito of the
-   :mod:`simplejson` project for providing such a nice starting point.
+   The code for `dirtyjson` is a fairly drastically rewritten version
+   of the loader in `simplejson` so thanks go to Bob Ippolito of the
+   `simplejson` project for providing such a nice starting point.
 
 Development of dirtyjson happens on Github:
 https://github.com/codecobblers/dirtyjson
@@ -78,16 +78,16 @@ Using Decimal instead of float::
 Basic Usage
 -----------
 
-.. function:: load(fp[, encoding[, parse_float[, parse_int[, parse_constant[, search_for_first_object]]]]])
+load(fp[, encoding[, parse_float[, parse_int[, parse_constant[, search_for_first_object]]]]])
 
    Performs the following translations in decoding by default:
 
    +---------------+-------------------------+
    | JSON          | Python                  |
    +===============+=========================+
-   | object        | :class:`AttributedDict` |
+   | object        | `AttributedDict`        |
    +---------------+-------------------------+
-   | array         | :class:`AttributedList` |
+   | array         | `AttributedList`        |
    +---------------+-------------------------+
    | string        | unicode                 |
    +---------------+-------------------------+
@@ -106,34 +106,34 @@ Basic Usage
    corresponding ``float`` values, which is outside the JSON spec.
 
    Deserialize *fp* (a ``.read()``-supporting file-like object containing a JSON
-   document) to a Python object. :exc:`dirtyjson.Error` will be
+   document) to a Python object. `dirtyjson.Error` will be
    raised if the given document is not valid.
 
    If the contents of *fp* are encoded with an ASCII based encoding other than
    UTF-8 (e.g. latin-1), then an appropriate *encoding* name must be specified.
    Encodings that are not ASCII based (such as UCS-2) are not allowed, and
    should be wrapped with ``codecs.getreader(fp)(encoding)``, or simply decoded
-   to a :class:`unicode` object and passed to :func:`loads`. The default
+   to a `unicode` object and passed to `loads`. The default
    setting of ``'utf-8'`` is fastest and should be using whenever possible.
 
-   If *fp.read()* returns :class:`str` then decoded JSON strings that contain
-   only ASCII characters may be parsed as :class:`str` for performance and
-   memory reasons. If your code expects only :class:`unicode` the appropriate
+   If *fp.read()* returns `str` then decoded JSON strings that contain
+   only ASCII characters may be parsed as `str` for performance and
+   memory reasons. If your code expects only `unicode` the appropriate
    solution is to wrap fp with a reader as demonstrated above.
 
    *parse_float*, if specified, will be called with the string of every JSON
    float to be decoded. By default, this is equivalent to ``float(num_str)``.
    This can be used to use another datatype or parser for JSON floats
-   (e.g. :class:`decimal.Decimal`).
+   (e.g. `decimal.Decimal`).
 
    *parse_int*, if specified, will be called with the int of the string of every
    JSON int to be decoded. By default, this is equivalent to ``int(num_str)``.
    This can be used to use another datatype or parser for JSON integers
-   (e.g. :class:`float`).
+   (e.g. `float`).
 
    .. note::
 
-      Unlike the standard :mod:`json` module, :mod:`dirtyjson` always does
+      Unlike the standard `json` module, `dirtyjson` always does
       ``int(num_str, 0)`` before passing through to the converter passed is as
       the *parse_int* parameter. This is to enable automatic handling of hex
       and octal numbers.
@@ -147,97 +147,97 @@ Basic Usage
    the first occurrence of either ``{`` or ``[``. This is very useful for
    reading an object from a JavaScript file.
 
-.. function:: loads(s[, encoding[, parse_float[, parse_int[, parse_constant[, search_for_first_object[, start_index]]]]])
+loads(s[, encoding[, parse_float[, parse_int[, parse_constant[, search_for_first_object[, start_index]]]]])
 
-   Deserialize *s* (a :class:`str` or :class:`unicode` instance containing a JSON
-   document) to a Python object. :exc:`dirtyjson.Error` will be
+   Deserialize *s* (a `str` or `unicode` instance containing a JSON
+   document) to a Python object. `dirtyjson.Error` will be
    raised if the given JSON document is not valid.
 
-   If *s* is a :class:`str` instance and is encoded with an ASCII based encoding
+   If *s* is a `str` instance and is encoded with an ASCII based encoding
    other than UTF-8 (e.g. latin-1), then an appropriate *encoding* name must be
    specified. Encodings that are not ASCII based (such as UCS-2) are not
-   allowed and should be decoded to :class:`unicode` first.
+   allowed and should be decoded to `unicode` first.
 
-   If *s* is a :class:`str` then decoded JSON strings that contain
-   only ASCII characters may be parsed as :class:`str` for performance and
-   memory reasons. If your code expects only :class:`unicode` the appropriate
-   solution is decode *s* to :class:`unicode` prior to calling loads.
+   If *s* is a `str` then decoded JSON strings that contain
+   only ASCII characters may be parsed as `str` for performance and
+   memory reasons. If your code expects only `unicode` the appropriate
+   solution is decode *s* to `unicode` prior to calling loads.
 
    *start_index*, if non-zero, will cause the parser to start processing from
    the specified offset, while maintaining the correct line and column numbers.
    This is very useful for reading an object from the middle of a JavaScript
    file.
 
-   The other arguments have the same meaning as in :func:`load`.
+   The other arguments have the same meaning as in `load`.
 
 Exceptions
 ----------
 
-.. exception:: dirtyjson.Error(msg, doc, pos)
+dirtyjson.Error(msg, doc, pos)
 
-    Subclass of :exc:`ValueError` with the following additional attributes:
+    Subclass of `ValueError` with the following additional attributes:
 
-    .. attribute:: msg
+    msg
 
         The unformatted error message
 
-    .. attribute:: doc
+    doc
 
         The JSON document being parsed
 
-    .. attribute:: pos
+    pos
 
         The start index of doc where parsing failed
 
-    .. attribute:: lineno
+    lineno
 
         The line corresponding to pos
 
-    .. attribute:: colno
+    colno
 
         The column corresponding to pos
 
 AttributedDict and AttributedList
 ---------------------------------
 
-The :mod:`dirtyjson` module uses :class:`AttributedDict` and
-:class:`AttributedList` instead of ``dict`` and ``list``. Each is actually a
+The `dirtyjson` module uses `AttributedDict` and
+`AttributedList` instead of ``dict`` and ``list``. Each is actually a
 subclass of its base type (``dict`` or ``list``) and can be used as if they were
 the standard class, but these have been enhanced to store attributes with each
 element. We use those attributes to store line and column numbers. You can use
 that information to refer users back to the exact location in the original
 source file.
 
-.. class:: Position()
+Position()
 
    This is a very simple utility class that contains ``line`` and ``column``.
-   It is used for storing the position attributes for :class:`AttributedList`
-   and :class:`KeyValuePosition`
+   It is used for storing the position attributes for `AttributedList`
+   and `KeyValuePosition`
 
-.. class:: KeyValuePosition()
+KeyValuePosition()
 
    This is another very simple utility class that contains ``key`` and
-   ``value``. Each of those is a :class:`Position` object specifying the
+   ``value``. Each of those is a `Position` object specifying the
    location in the original source string/file of the key and value. It is used
-   for storing the position attributes for :class:`AttributedDict`.
+   for storing the position attributes for `AttributedDict`.
 
-.. class:: AttributedDict()
+AttributedDict()
 
    A subclass of ``dict`` that behaves exactly like a ``dict`` except that it
    maintains order like an ``OrderedDict`` and allows storing attributes for
    each key/value pair.
 
-   .. method:: add_with_attributes(self, key, value, attributes)
+   add_with_attributes(self, key, value, attributes)
 
       Set the *key* in the underlying ``dict`` to the *value* and also store
       whatever is passed in as *attributes* for later retrieval. In our case,
-      we store :class:`KeyValuePosition`.
+      we store `KeyValuePosition`.
 
-   .. method:: attributes(self, key)
+   attributes(self, key)
 
       Return the attributes associated with the specified *key* or ``None`` if
       no attributes exist for the key. In our case, we store
-      :class:`KeyValuePosition`. Retrieve position info like this::
+      `KeyValuePosition`. Retrieve position info like this::
 
          pos = d.attributes(key)
          key_line = pos.key.line
@@ -245,20 +245,20 @@ source file.
          value_line = pos.value.line
          value_column = pos.value.column
 
-.. class:: AttributedList()
+AttributedList()
 
    A subclass of ``list`` that behaves exactly like a ``list`` except that it
    allows storing attributes for each value.
 
-   .. method:: append(self, value, attributes=None):
+   append(self, value, attributes=None):
 
       Appends *value* to the list and *attributes* to the associated location.
-      In our case, we store :class:`Position`.
+      In our case, we store `Position`.
 
-   .. method:: attributes(self, index)
+   attributes(self, index)
 
       Returns the attributes for the value at the given *index*. In our case,
-      we store :class:`Position`. Retrieve position info like this::
+      we store `Position`. Retrieve position info like this::
 
          pos = l.attributes(index)
          value_line = pos.line
